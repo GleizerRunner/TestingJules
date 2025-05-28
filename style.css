@@ -1,0 +1,98 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+h1 {
+    color: #ffeb3b; /* Vibrant Yellow */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+}
+
+h2 {
+    color: #00bcd4; /* Vibrant Cyan */
+    margin-top: 30px;
+}
+
+input[type="file"] {
+    margin-top: 20px;
+    padding: 10px 15px;
+    border: 2px dashed #ffeb3b; /* Vibrant Yellow */
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+input[type="file"]::file-selector-button {
+    background-color: #ffeb3b; /* Vibrant Yellow */
+    color: #333333;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+input[type="file"]:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+#imageContainer {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    border: 5px solid #00bcd4; /* Vibrant Cyan */
+    border-radius: 10px;
+    overflow: hidden;
+    min-height: 100px; /* Minimum height */
+    display: flex; /* For centering placeholder or image */
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0,0,0,0.1);
+}
+
+#uploadedImage {
+    max-width: 100%;
+    max-height: 400px; /* Max height for the image preview */
+    display: block; /* Initially it's set to none, will be changed by JS */
+}
+
+#results {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+#results p {
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+#results strong {
+    color: #00bcd4; /* Vibrant Cyan */
+}
+
+#status {
+    font-style: italic;
+    color: #ff9800; /* Vibrant Orange */
+}
+
+#analysisResultsContainer span {
+    color: #90ee90; /* Light Green for results */
+    font-weight: bold;
+}
+
+/* Added some spacing for the results container */
+#analysisResultsContainer p {
+    margin-bottom: 8px; 
+}
