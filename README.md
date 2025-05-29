@@ -37,5 +37,14 @@ This is a simple web application that uses client-side AI (TensorFlow.js and fac
 *   **Health Cues:** The application does not perform medical diagnosis or detailed health cue analysis. It only notes that general facial features are analyzed by the other functions.
 *   **Single Face Focus:** While the app can detect multiple faces, detailed analysis is currently performed and displayed only for the first detected face.
 
+## Troubleshooting
+
+*   **Models Not Loading / "Error loading AI models" message:**
+    *   **Check Internet Connection:** Ensure you have a stable internet connection, as models are loaded from an online CDN.
+    *   **Browser Developer Console:** Open your browser's developer console (usually by pressing F12 and selecting the "Console" tab). Look for specific error messages related to network requests (often shown in red). These errors can indicate which model URLs are failing and why (e.g., network error, CORS issue if running from local files in some strict browser configurations, CDN outage).
+    *   **Firewall/Antivirus:** Rarely, a firewall or antivirus software might block access to the CDN.
+    *   **Browser Extensions:** Ad blockers or privacy-focused browser extensions can sometimes interfere with loading external resources. Try temporarily disabling them for the app's page.
+    *   **CDN Availability:** While generally reliable, the CDN hosting the models (`face-api.js` weights) could have temporary issues. You can try again later.
+
 ## Development Notes
 This application was developed as a demonstration of using `face-api.js` for client-side image analysis.

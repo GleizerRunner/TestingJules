@@ -18,31 +18,66 @@ async function loadModels() {
     statusDisplay.textContent = 'Loading AI models... This may take a moment.';
     imageUpload.disabled = true; // Disable file input during model loading
 
+    const modelsToLoad = [
+        { name: 'tinyFaceDetector', promise: faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL) },
+        { name: 'faceLandmark68Net', promise: faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL) },
+        { name: 'faceRecognitionNet', promise: faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL) },
+        { name: 'faceExpressionNet', promise: faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL) },
+        { name: 'ageGenderNet', promise: faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL) }
+    ];
+
     try {
-        // Load all required models concurrently
-        await Promise.all([
-            faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),    // For fast face detection
-            faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),   // For detecting facial landmarks
-            faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL), // Used for face recognition features (though primarily for landmarks here)
-            faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL), // For recognizing facial expressions (emotions)
-            faceapi.nets.ageGenderNet.loadFromUri(MODEL_URL)         // For estimating age and gender
-        ]);
-        modelsLoaded = true;
-        statusDisplay.textContent = 'Models loaded. Ready to analyze.';
-        imageUpload.disabled = false; // Re-enable file input
-        console.log("Models loaded successfully");
-    } catch (error) {
-        console.error("Error loading models:", error);
-        statusDisplay.textContent = 'Error loading AI models. Please refresh. File input disabled.';
+        const results = await Promise.allSettled(modelsToLoad.map(m => m.promise));
+        
+        let allModelsLoadedSuccessfully = true;
+        let failedModels = [];
+
+        results.forEach((result, index) => {
+            const modelName = modelsToLoad[index].name;
+            if (result.status === 'fulfilled') {
+                console.log(`${modelName} loaded successfully.`);
+            } else {
+                console.error(`${modelName} failed to load:`, result.reason);
+                failedModels.push(modelName);
+                allModelsLoadedSuccessfully = false;
+            }
+        });
+
+        if (allModelsLoadedSuccessfully) {
+            modelsLoaded = true;
+            statusDisplay.textContent = 'Models loaded. Ready to analyze.';
+            imageUpload.disabled = false; // Re-enable file input
+            console.log("All models loaded successfully");
+        } else {
+            modelsLoaded = false;
+            // If tinyFaceDetector is essential and fails, treat it as a critical failure.
+            // You can customize this logic based on which models are absolutely critical.
+            const criticalModelFailed = failedModels.includes('tinyFaceDetector'); 
+            if (criticalModelFailed) {
+                 statusDisplay.textContent = `Critical model (${failedModels.join(', ')}) failed to load. Analysis disabled. Please refresh.`;
+            } else {
+                 statusDisplay.textContent = `Some non-critical models (${failedModels.join(', ')}) failed to load. Analysis may be limited. Please refresh for full functionality.`;
+            }
+            imageUpload.disabled = criticalModelFailed; // Keep disabled only if a critical model fails
+            console.error("Not all models loaded successfully. Failed models:", failedModels);
+        }
+    } catch (error) { // This catch is for unexpected errors in the Promise.allSettled logic itself, not for individual promise rejections.
+        console.error("Unexpected error during model loading sequence:", error);
+        statusDisplay.textContent = 'Critical error during model loading. Please refresh.';
         modelsLoaded = false;
-        imageUpload.disabled = true; // Keep disabled if models fail
+        imageUpload.disabled = true;
     }
 }
 
 // Resets the displayed results to their initial state
 function resetResults() {
     if (!modelsLoaded) {
-        statusDisplay.textContent = imageUpload.disabled ? 'Error loading AI models. Please refresh.' : 'Awaiting image... (Models loading/failed)';
+        // Check if imageUpload is disabled to infer if it's due to model loading failure
+        if (imageUpload.disabled && (statusDisplay.textContent.includes("failed to load") || statusDisplay.textContent.includes("Error loading AI models"))) {
+             // Status already set by loadModels, so no need to change it here unless providing a more generic message
+        } else {
+            statusDisplay.textContent = 'Awaiting image... (Models loading/failed or not yet loaded)';
+        }
     } else if (uploadedImage.src && uploadedImage.src !== '#' && uploadedImage.style.display !== 'none') {
         statusDisplay.textContent = 'Ready for new analysis or select a new image.';
     } else {
@@ -79,7 +114,10 @@ imageUpload.addEventListener('change', async (event) => {
         uploadedImage.style.display = 'block'; // Display the image
 
         if (!modelsLoaded) {
-            statusDisplay.textContent = 'Please wait, AI models are still loading or failed to load.';
+            statusDisplay.textContent = 'Models not fully loaded or failed. Analysis may be unavailable or limited.';
+             if (imageUpload.disabled) { // If input is disabled, it's likely a critical model failure
+                statusDisplay.textContent += " Please refresh to try loading models again.";
+             }
             return; 
         }
         statusDisplay.textContent = 'Image loaded. Analyzing...';
@@ -98,17 +136,25 @@ imageUpload.addEventListener('change', async (event) => {
 
 // Main function to perform AI analysis on the uploaded image
 async function analyzeImage() {
-    if (!modelsLoaded || !uploadedImage.src || uploadedImage.src.startsWith('#') || uploadedImage.style.display === 'none') {
-        statusDisplay.textContent = 'Models not loaded or no image displayed for analysis.';
-        console.log('Analyze image called without models or visible image');
+    if (!modelsLoaded) { // Check the global modelsLoaded flag
+        statusDisplay.textContent = 'AI Models not loaded. Cannot analyze. Please refresh the page.';
+        if (document.getElementById('tinyFaceDetector') && !modelsLoaded) { // Example of checking specific model if needed, though global flag is primary
+            // This specific check might be overly complex if global flag is reliable
+        }
+        console.log('Analyze image called when models are not loaded.');
         return;
     }
+    if (!uploadedImage.src || uploadedImage.src.startsWith('#') || uploadedImage.style.display === 'none') {
+        statusDisplay.textContent = 'No image displayed for analysis.';
+        console.log('Analyze image called without visible image');
+        return;
+    }
+
 
     statusDisplay.textContent = 'Detecting faces... This can take a few seconds.';
     console.log("Starting face detection...");
     analysisResultsContainer.style.display = 'none'; // Hide results until new ones are ready
-    faceCountDisplay.textContent = '...'; // Indicate activity during detection
-
+    faceCountDisplay.textContent = '...'; // Indicate activity
 
     try {
         // Perform face detection and analysis using face-api.js
@@ -175,7 +221,12 @@ async function analyzeImage() {
         }
     } catch (error) {
         console.error("Error during face analysis:", error);
-        statusDisplay.textContent = 'Error during analysis. See console for details.';
+        // Check if error is due to a specific model not being loaded (e.g. if tinyFaceDetector is critical)
+        if (error.message.includes("tinyFaceDetector") || error.message.includes("load model")) {
+            statusDisplay.textContent = 'Core model for analysis failed or not loaded. Please refresh.';
+        } else {
+            statusDisplay.textContent = 'Error during analysis. See console for details.';
+        }
         resetResults(); // Clear results on analysis error
     }
 }
@@ -184,6 +235,11 @@ async function analyzeImage() {
 async function getAverageSkinTone(faceDetection, imageElement) {
     if (!faceDetection || !imageElement.src || imageElement.src.startsWith('#')) {
         console.warn("Cannot get skin tone, face detection or image element is invalid.");
+        return null;
+    }
+    // Ensure detection and box exist, if not, tinyFaceDetector might have issues or not run.
+    if(!faceDetection.detection || !faceDetection.detection.box) {
+        console.warn("Face detection box not available for skin tone analysis. TinyFaceDetector might be missing or failed.");
         return null;
     }
 
